@@ -17,7 +17,6 @@ class HttpInterface
     {
         if (!$this->parent->isLoggedIn && !$login) {
             throw new InstagramException("Not logged in\n");
-
             return;
         }
 
@@ -148,7 +147,6 @@ class HttpInterface
 
         if (!$upload->isOk()) {
             throw new InstagramException($upload->getMessage());
-
             return;
         }
 
