@@ -23,38 +23,38 @@ class InstagramRegistration
         $this->userAgent = 'Instagram '.Constants::VERSION.' Android (18/4.3; 320dpi; 720x1280; Xiaomi; HM 1SW; armani; qcom; en_US)';
     }
 
-  /**
-   * Checks if the username is already taken (exists).
-   *
-   * @param string $username
-   *
-   * @return array
-   *   Username availability data
-   */
-  public function checkUsername($username)
-  {
-      $data = json_encode([
+    /**
+     * Checks if the username is already taken (exists).
+     *
+     * @param string $username
+     *
+     * @return array
+     *               Username availability data
+     */
+    public function checkUsername($username)
+    {
+        $data = json_encode([
           '_uuid'      => $this->uuid,
           'username'   => $username,
           '_csrftoken' => 'missing',
       ]);
 
-      return $this->request('users/check_username/', $this->generateSignature($data))[1];
-  }
+        return $this->request('users/check_username/', $this->generateSignature($data))[1];
+    }
 
-  /**
-   * Register account.
-   *
-   * @param string $username
-   * @param string $password
-   * @param string $email
-   *
-   * @return array
-   *   Registration data
-   */
-  public function createAccount($username, $password, $email)
-  {
-      $data = json_encode([
+    /**
+     * Register account.
+     *
+     * @param string $username
+     * @param string $password
+     * @param string $email
+     *
+     * @return array
+     *               Registration data
+     */
+    public function createAccount($username, $password, $email)
+    {
+        $data = json_encode([
           'phone_id'           => $this->uuid,
           '_csrftoken'         => 'missing',
           'username'           => $username,
@@ -67,19 +67,19 @@ class InstagramRegistration
           'password'           => $password,
       ]);
 
-      $result = $this->request('accounts/create/', $this->generateSignature($data));
-      if (isset($result[1]['account_created']) && ($result[1]['account_created'] == true)) {
-          $this->username_id = $result[1]['created_user']['pk'];
-          file_put_contents($this->IGDataPath."$username-userId.dat", $this->username_id);
-          preg_match('#Set-Cookie: csrftoken=([^;]+)#', $result[0], $match);
-          $token = $match[1];
-          $this->username = $username;
-          file_put_contents($this->IGDataPath."$username-token.dat", $token);
-          rename($this->IGDataPath.'cookies.dat', $this->IGDataPath."$username-cookies.dat");
-      }
+        $result = $this->request('accounts/create/', $this->generateSignature($data));
+        if (isset($result[1]['account_created']) && ($result[1]['account_created'] == true)) {
+            $this->username_id = $result[1]['created_user']['pk'];
+            file_put_contents($this->IGDataPath."$username-userId.dat", $this->username_id);
+            preg_match('#Set-Cookie: csrftoken=([^;]+)#', $result[0], $match);
+            $token = $match[1];
+            $this->username = $username;
+            file_put_contents($this->IGDataPath."$username-token.dat", $token);
+            rename($this->IGDataPath.'cookies.dat', $this->IGDataPath."$username-cookies.dat");
+        }
 
-      return $result;
-  }
+        return $result;
+    }
 
     public function generateSignature($data)
     {
