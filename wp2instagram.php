@@ -4,7 +4,7 @@ Plugin Name: Auto-Post To Instagram
 Plugin URI: http://h-tech.al
 Description: Plugin for automatic posting Wordpress images to Instagram
 Author: Roland, Informatica Duran
-Version: 1.4.6
+Version: 1.4.8
 Author URI: http://rolandalla.com
 */
 
@@ -13,7 +13,7 @@ define( 'WP2INSTAGRAM_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP2INSTAGRAM_PLUGIN_SETTINGS', 'wp2instagram' );
 define( 'WP2INSTAGRAM_PLUGIN_BASE', plugin_basename( __FILE__ ) );
 define( 'WP2INSTAGRAM_RETURN_URI', strtolower( site_url( '/' ) . 'wp-admin/options-general.php?page=' . WP2INSTAGRAM_PLUGIN_SETTINGS ) );
-define( 'WP2INSTAGRAM_VERSION', '1.4.6');
+define( 'WP2INSTAGRAM_VERSION', '1.4.8');
 
 
 include WP2INSTAGRAM_PLUGIN_PATH .'autoload.php';
@@ -310,6 +310,18 @@ if ( ! class_exists( "wp2instagram" ) ) {
 				$wp2instagram_dontautopublish = json_encode($wp2instagram_dontautopublish);
 				update_option('wp2instagram_dontautopublish', $wp2instagram_dontautopublish);  
 
+				
+				$wp2instagram_bypass_control = $_REQUEST['wp2instagram_bypass_control'];	
+				$wp2instagram_bypass_control = json_encode($wp2instagram_bypass_control);
+				update_option('wp2instagram_bypass_control', $wp2instagram_bypass_control);  
+
+				$wp2instagram_resize_image = $_REQUEST['wp2instagram_resize_image'];	
+				$wp2instagram_resize_image = json_encode($wp2instagram_resize_image);
+				update_option('wp2instagram_resize_image', $wp2instagram_resize_image);  
+
+
+				
+				
 				$wp2instagram_debug = $_REQUEST['wp2instagram_debug'];	
 				$wp2instagram_debug = json_encode($wp2instagram_debug);
 				update_option('wp2instagram_debug', $wp2instagram_debug);  
@@ -396,12 +408,31 @@ if ( ! class_exists( "wp2instagram" ) ) {
                 $wp2instagram_post_types = json_decode($wp2instagram_post_types);
 
 			
+			$wp2instagram_bypass_control = get_option('wp2instagram_bypass_control ');
+			if($wp2instagram_bypass_control  == false || $wp2instagram_bypass_control  == 'null') {
+                $wp2instagram_bypass_control  = '';
+            } else
+                $wp2instagram_bypass_control  = json_decode($wp2instagram_bypass_control );
+
+			
+			$wp2instagram_resize_image = get_option('wp2instagram_resize_image');
+			if($wp2instagram_resize_image == false || $wp2instagram_resize_image == 'null') {
+                $wp2instagram_resize_image = '';
+            } else
+                $wp2instagram_resize_image = json_decode($wp2instagram_resize_image);
+			
+			
 			$wp2instagram_dontautopublish = get_option('wp2instagram_dontautopublish');
 			if($wp2instagram_dontautopublish == false || $wp2instagram_dontautopublish == 'null') {
                 $wp2instagram_dontautopublish = '';
             } else
                 $wp2instagram_dontautopublish = json_decode($wp2instagram_dontautopublish);
-
+			
+			
+			
+			
+			
+			
 			$wp2instagram_debug = get_option('wp2instagram_debug');
 			if($wp2instagram_debug == false || $wp2instagram_debug == 'null') {
                 $wp2instagram_debug = '';
@@ -516,6 +547,19 @@ if ( ! class_exists( "wp2instagram" ) ) {
 			</td>
 
 			<tr>
+				<td>Bypass control of width and height</td>
+				<td><input type="checkbox" <?php if ($wp2instagram_bypass_control=='Y') {echo 'checked="checked"';} ?>value="Y" name="wp2instagram_bypass_control"></td>
+				<td>Check the box if you do not want any control of width or height before sending your picture to Instagram (May be refused by instagram).
+			</td>
+			
+			<tr>
+				<td>Resize picture if needed</td>
+				<td><input type="checkbox" <?php if ($wp2instagram_resize_image=='Y') {echo 'checked="checked"';} ?>value="Y" name="wp2instagram_resize_image"></td>
+				<td>Check the box if you want that the plugin try to resize your image to a size accepted by Instagram ( max 1080px ) if your picture is too big.
+			</td>
+			
+			
+			<tr>
 				<td>Debug</td>
 				<td><input type="checkbox" <?php if ($wp2instagram_debug=='Y') {echo 'checked="checked"';} ?>value="Y" name="wp2instagram_debug"></td>
 				<td>Check the box if you want to enable debug mode.
@@ -554,6 +598,26 @@ if ( ! class_exists( "wp2instagram" ) ) {
 			
 			if (empty($dontautopublish)) $dontautopublish='N';	
 			if ($dontautopublish!='Y') $dontautopublish='N';
+	
+			$bypass_control = get_option("wp2instagram_bypass_control","");
+			if($bypass_control == false || $bypass_control == 'null') {
+				$bypass_control = '';
+			} else
+				$bypass_control = json_decode($bypass_control);
+			
+			if (empty($bypass_control)) $bypass_control='N';	
+			if ($bypass_control!='Y') $bypass_control='N';
+	
+			$resize_image = get_option("wp2instagram_resize_image","");
+			if($resize_image == false || $resize_image == 'null') {
+				$resize_image = '';
+			} else
+				$resize_image = json_decode($resize_image);
+			
+			if (empty($resize_image)) $resize_image='N';	
+			if ($resize_image!='Y') $resize_image='N';
+	
+	
 	
 			$post_this_article_to_instagram='N';
 			$in_instagram_box='N';
@@ -605,6 +669,10 @@ if ( ! class_exists( "wp2instagram" ) ) {
 
                         list($originalWidth, $originalHeight) = getimagesize($photo);
 
+						
+						if ($bypass_control=='N') {
+						
+						
 						if ( $originalWidth > 1080 ) 
 						{
 							$instagram_post_upload_status="Width too big for Instagram - must be less than 1080px";
@@ -638,6 +706,59 @@ if ( ! class_exists( "wp2instagram" ) ) {
 							exit(0);
 						}
 
+						}
+						
+						
+						
+						
+						if ($resize_image=='Y') {
+						
+							$ratio = $originalWidth / $originalHeight;
+						
+							if ( ( $originalWidth > $originalHeight) && ($originalWidth > 1080 ) ) { // landscape picture
+							
+							$resizeW = 1080;
+							$resizeH = $resizeW / $ratio;
+							
+							} elseif ( ( $originalWidth < $originalHeight) && ( $originalHeight > 1080 ) ) { // portrait picture
+							
+							$resizeH = 1080;
+							$resizeW = $resizeH * $ratio;
+							
+							} elseif ( ( $originalWidth == $originalHeight) && ($originalWidth > 1080 ) ) { // square picture
+							
+							$resizeH = 1080;
+							$resizeW = 1080;
+							
+							}
+							
+							//let's go and resize picture
+							
+							
+							$origimg = imagecreatefromjpeg($photo);
+                            $resizeimg = imagecreatetruecolor($resizeW,$resizeH);
+
+                            $white = imagecolorallocate($resizeimg, 255, 255, 255);
+                            imagefill($resizeimg, 0, 0, $white);
+
+                            // Crop
+
+                            imagecopyresized($resizeimg, $origimg, 0, 0, 0, 0, $resizeW, $resizeH, $originalWidth, $originalHeight);
+                            imagejpeg($resizeimg, WP2INSTAGRAM_PLUGIN_PATH . 'temp.jpg');
+                            $photo = WP2INSTAGRAM_PLUGIN_PATH . 'temp.jpg';
+
+                            $action_delete = TRUE;
+							
+							list($originalWidth, $originalHeight) = getimagesize($photo);
+						
+						}
+						
+						
+						
+						
+						
+						
+						
 						
 						
                         $ratio = $originalWidth / $originalHeight;
@@ -979,27 +1100,52 @@ if ( ! class_exists( "wp2instagram" ) ) {
                         $caption =html_entity_decode($caption, ENT_QUOTES, "UTF-8");
 
 						
-						$wp2IGFullPath = false;
+						$wp2IGFullPath = null;
 					
 						try {
 							$i = new \InstagramAPI\Instagram($username, $password, $debug, $wp2IGFullPath);
 						} catch (\Exception $e) {
+							
+							$error_message=$e->getMessage();
+							
+							if ($error_message == "login_required")
+							
+							{
+							
+									try {
+										$loging_force=true;
+										$i->login($loging_force);
+									} catch (\Exception $e2) {
+									
+									$instagram_post_upload_status='Something went wrong while logging to instagram: '.$e2->getMessage();
+									update_post_meta( $ID, 'instagram_post_upload_status', json_encode($instagram_post_upload_status) );
+									echo $instagram_post_upload_status."\n";
+									exit(0);
+										
+									}
+								
+								
+							}
+							else {
+							
 							$instagram_post_upload_status='Something went wrong while connecting to instagram: '.$e->getMessage();
                             update_post_meta( $ID, 'instagram_post_upload_status', json_encode($instagram_post_upload_status) );
 							echo $instagram_post_upload_status."\n";
 							exit(0);
+							
+							}
                         }
 
 						
 							
-							//try {
-							//	$i->setUser($username, $password);
-							//} catch (\Exception $e) {
-							//	$instagram_post_upload_status='Something went wrong while setting user to instagram: '.$e->getMessage();
-							//	update_post_meta( $ID, 'instagram_post_upload_status', json_encode($instagram_post_upload_status) );
-							//	echo $instagram_post_upload_status."\n";
-							//	exit(0);
-							//}
+						try {
+							$i->setUser($username, $password);
+						} catch (\Exception $e) {
+							$instagram_post_upload_status='Something went wrong while setting user to instagram: '.$e->getMessage();
+							update_post_meta( $ID, 'instagram_post_upload_status', json_encode($instagram_post_upload_status) );
+							echo $instagram_post_upload_status."\n";
+							exit(0);
+						}
 							
 							
                         
@@ -1007,9 +1153,33 @@ if ( ! class_exists( "wp2instagram" ) ) {
                         try {
                             $insta_info=$i->uploadPhoto($photo, $caption);
                         } catch (\Exception $e) {
+							
+							$error_message=$e->getMessage();
+							
+							if ($error_message == "login_required")
+							
+							{
+							
+									try {
+										$i->login();
+									} catch (\Exception $e2) {
+									
+									$instagram_post_upload_status='Something went wrong while logging to instagram: '.$e2->getMessage();
+									update_post_meta( $ID, 'instagram_post_upload_status', json_encode($instagram_post_upload_status) );
+									echo $instagram_post_upload_status."\n";
+									exit(0);
+										
+									}
+								
+								
+							}
+							else {
+
                             $instagram_post_upload_status='Something went wrong while uploading your photo: '.$e->getMessage();
                             update_post_meta( $ID, 'instagram_post_upload_status', json_encode($instagram_post_upload_status) );
 							echo $instagram_post_upload_status."\n";
+
+							}
                         }
 
 				

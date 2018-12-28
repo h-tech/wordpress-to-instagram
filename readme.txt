@@ -135,3 +135,28 @@ New features:
 * if debug mode activated, in the info box, you will have the full response of instagram, with the message why it was not accepted by instagram.
 
 * Tested in Wordpress 5.0.1
+
+= 1.4.7 =
+
+Bug corrected :
+
+* Minor correction to the login process to Instagram 
+
+New features:
+
+* None
+
+* Tested in Wordpress 5.0.2
+
+= 1.4.8 =
+
+Bug corrected :
+
+* None
+
+New features:
+
+* Bypass control to avoid the checking of width and/or height, in that case the picture is sent to Instagram no matter what, so it may be refused by Instagram
+* Resize of photo to a size acccepted by Instagram ( max : 1080px ) 
+
+* Tested in Wordpress 5.0.2
